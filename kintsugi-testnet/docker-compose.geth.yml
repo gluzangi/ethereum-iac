@@ -1,0 +1,32 @@
+version: "3.4"
+services:
+  init_geth:
+    image: parithoshj/geth:merge-d99ac5a
+    container_name: geth_init
+    volumes:
+      - ./execution_data:/execution_data
+      - ./custom_config_data:/custom_config_data
+    env_file: '.env'
+    command: >
+      --datadir=/execution_data init /custom_config_data/genesis.json
+    networks:
+      - stack-net
+  geth:
+    image: parithoshj/geth:merge-d99ac5a
+    container_name: geth
+    ports:
+      - "8545:8545"
+    depends_on:
+      - init_geth
+    volumes:
+      - ./execution_data:/execution_data
+    env_file: '.env'
+    command: >
+      --datadir=/execution_data --networkid=$NETWORK_ID --catalyst --http
+      --http.api "engine,net,eth" --ws --ws.api "engine,net,eth" --allow-insecure-unlock
+      --nat extip:$IP_ADDRESS --bootnodes=$ENODE
+    networks:
+      - stack-net
+networks:
+  stack-net:
+    driver: overlay    

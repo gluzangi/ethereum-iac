@@ -1,0 +1,21 @@
+version: "3.4"
+services:
+  nimbus_beacon:
+    image: parithoshj/nimbus:merge-e623091
+    container_name: nimbus_beacon
+    volumes:
+      - ./beacon_data:/consensus_data
+      - ./custom_config_data:/custom_config_data
+    env_file: 'kintsugi.vars'
+    command: >
+      beacon_node --non-interactive=true --network="/custom_config_data"
+      --data-dir="/consensus_data" --web3-url=ws://127.0.0.1:8546
+      --bootstrap-node=$ENR --nat="extip:$IP_ADDRESS" --enr-auto-update=false
+      --rest --rest-port=4000
+      --terminal-total-difficulty-override=$TOTAL_TERMINAL_DIFFICULTY
+    # network_mode: host
+    networks:
+      - stack-net
+networks:
+  stack-net:
+    driver: overlay

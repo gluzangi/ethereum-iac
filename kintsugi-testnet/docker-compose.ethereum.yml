@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  geth_init:
+    image: parithoshj/geth:merge-d99ac5a
+    container_name: geth_init
+    volumes:
+      - ./execution_data:/execution_data
+      - ./custom_config_data:/custom_config_data
+    env_file: '.env'
+    command: >
+      --datadir=/execution_data init /custom_config_data/genesis.json
+    networks:
+      - stack-net
+
+  geth:
+    image: parithoshj/geth:merge-d99ac5a
+    container_name: geth
+    ports:
+      - "8545:8545"
+    depends_on:
+      - geth_init
+    volumes:
+      - ./execution_data:/execution_data
+    env_file: '.env'
+    command: >
+      --datadir=/execution_data --networkid=$NETWORK_ID --catalyst --http
+      --http.api "engine,net,eth" --ws --ws.api "engine,net,eth" --allow-insecure-unlock
+      --nat extip:$IP_ADDRESS --bootnodes=$ENODE
+    networks:
+      - stack-net
+
+  lighthouse_beacon:
+    image: sigp/lighthouse:latest-unstable
+    container_name: lighthouse_beacon
+    volumes:
+      - ./beacon_data:/consensus_data
+      - ./custom_config_data:/custom_config_data
+    env_file: '.env'
+    command: >
+      lighthouse --debug-level=info --datadir=/consensus_data
+      --testnet-dir=/custom_config_data bn --disable-enr-auto-update --enr-address=$IP_ADDRESS
+      --enr-udp-port 9000 --enr-tcp-port 9000 --eth1 --boot-nodes=$ENR --http --http-port=4000
+      --merge --http-allow-sync-stalled --disable-packet-filter
+      --execution-endpoints=http://geth:8545 --terminal-total-difficulty-override=$TOTAL_TERMINAL_DIFFICULTY
+    networks:
+      - stack-net
+
+networks:
+  stack-net:
+    driver: overlay       
